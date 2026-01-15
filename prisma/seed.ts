@@ -1,4 +1,9 @@
-import 'dotenv/config'
+import path from 'path'
+import dotenv from 'dotenv'
+
+// FIX: Vertel dotenv expliciet waar de .env file staat (één map omhoog vanuit prisma/)
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+
 import { PrismaClient } from '../src/generated/prisma/client'
 import { faker } from '@faker-js/faker'
 import { pbkdf2Sync, randomBytes } from 'crypto'
