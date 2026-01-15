@@ -1,0 +1,127 @@
+// Dit is je Prisma schema file
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["typedSql"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Enum voor Roles
+enum Role {
+  User
+}
+
+// 2. User Tabel
+model User {
+  id       String    @id @unique @default(uuid()) @db.Uuid
+  email    String    @unique @db.VarChar(255)
+  password String
+  username String
+  role     Role      @default(User)
+  sessions Session[]
+
+  // Implicit Many-to-Many relatie: Users kunnen fighters volgen
+  trackedFighters Fighter[]
+}
+
+// 3. Session Tabel
+model Session {
+  id          String   @id @unique @default(uuid()) @db.Uuid
+  activeFrom  DateTime @default(now())
+  activeUntil DateTime
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 4. Fighter Tabel
+model Fighter {
+  id        String   @id @default(uuid()) @db.Uuid
+  firstName String   @db.VarChar(255)
+  lastName  String   @db.VarChar(255)
+  nickname  String?  @db.VarChar(255)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  draws     Int      @default(0)
+  heightCm  Int
+  reachCm   Int
+  dob       DateTime
+  bio       String?  @db.Text
+  imageUrl  String   @default("/avatars/fighter-placeholder.png")
+
+  // Relaties
+  weightClassId String?      @db.Uuid
+  weightClass   WeightClass? @relation(fields: [weightClassId], references: [id])
+
+  gymId String? @db.Uuid
+  gym   Gym?    @relation(fields: [gymId], references: [id])
+
+  styles FightingStyle[] // M:N Relatie
+
+  // Relaties naar gevechten (A of B kant)
+  fightsA Fight[] @relation("FighterA")
+  fightsB Fight[] @relation("FighterB")
+
+  // Wordt gevolgd door users
+  trackedByUsers User[]
+}
+
+// 5. Gym Tabel
+model Gym {
+  id       String    @id @default(uuid()) @db.Uuid
+  name     String    @unique
+  location String?
+  fighters Fighter[]
+}
+
+// 6. WeightClass Tabel
+model WeightClass {
+  id       String    @id @default(uuid()) @db.Uuid
+  name     String    @unique
+  limitLb  Int
+  fighters Fighter[]
+}
+
+// 7. FightingStyle Tabel
+model FightingStyle {
+  id       String    @id @default(uuid()) @db.Uuid
+  name     String    @unique
+  fighters Fighter[]
+}
+
+// 8. Event Tabel
+model Event {
+  id       String   @id @default(uuid()) @db.Uuid
+  name     String
+  date     DateTime
+  location String?
+  fights   Fight[]
+}
+
+// 9. Fight Tabel
+model Fight {
+  id      String @id @default(uuid()) @db.Uuid
+  eventId String @db.Uuid
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  fighterAId String  @db.Uuid
+  fighterA   Fighter @relation("FighterA", fields: [fighterAId], references: [id])
+
+  fighterBId String  @db.Uuid
+  fighterB   Fighter @relation("FighterB", fields: [fighterBId], references: [id])
+
+  isMainEvent Boolean @default(false)
+}
+
+// 10. NewsItem Tabel
+model NewsItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  snippet     String   @db.Text
+  content     String   @db.Text
+  publishedAt DateTime @default(now())
+  author      String?
+}
