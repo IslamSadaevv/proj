@@ -1,14 +1,12 @@
-import { NewsFeed } from "@/components/news/news-feed"
+import { getAllNews } from '@/dal/news';
+import { NewsManager } from '@/components/news/news-manager';
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const news = await getAllNews();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">News Feed</h1>
-        <p className="text-slate-400">Latest MMA news and updates</p>
-      </div>
-
-      <NewsFeed />
+    <div className="p-4">
+      <NewsManager news={news} />
     </div>
-  )
+  );
 }

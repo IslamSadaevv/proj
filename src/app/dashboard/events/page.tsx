@@ -1,14 +1,13 @@
-import { EventsCalendar } from "@/components/events/events-calendar"
+import { getAllEvents } from '@/dal/events';
+import { EventManager } from '@/components/events/event-manager';
 
-export default function EventsPage() {
+
+export default async function EventsPage() {
+  const events = await getAllEvents();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Events Calendar</h1>
-        <p className="text-slate-400">Upcoming and past MMA events</p>
-      </div>
-
-      <EventsCalendar />
+    <div className="p-4">
+      <EventManager events={events} />
     </div>
-  )
+  );
 }

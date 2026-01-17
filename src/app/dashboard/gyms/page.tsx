@@ -1,14 +1,12 @@
-import { GymsGrid } from "@/components/gyms/gyms-grid"
+import { getAllGyms } from '@/dal/gyms';
+import { GymManager } from '@/components/gyms/gym-manager';
 
-export default function GymsPage() {
+export default async function GymsPage() {
+  const gyms = await getAllGyms();
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Gyms & Teams</h1>
-        <p className="text-slate-400">Top MMA training facilities</p>
-      </div>
-
-      <GymsGrid />
+    <div className="p-4">
+      <GymManager gyms={gyms} />
     </div>
-  )
+  );
 }

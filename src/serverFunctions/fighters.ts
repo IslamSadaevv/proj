@@ -4,21 +4,17 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { prismaClient } from '@/dal/prismaClient';
 import { getLogger } from '@/lib/logger';
-import { getSessionFromCookie } from '@/lib/sessionUtils';
+// FIX: Importeer de sessie-verleng functie
+import { getSessionFromCookie, extendSessionAndSetCookie } from '@/lib/sessionUtils';
 import { CreateFighterSchema, UpdateFighterSchema } from '@/schemas/fighterSchemas';
 import type { CreateFighterInput, UpdateFighterInput } from '@/schemas/fighterSchemas';
 
-/**
- * CREATE Fighter Action
- */
 export async function createFighter(data: CreateFighterInput) {
   const logger = await getLogger();
   const start = Date.now();
   
-  // 1. Logging Start
   logger.info({ action: 'createFighter', data }, 'Started createFighter operation');
 
-  // 2. Auth Check (Lecture 5: Security)
   const session = await getSessionFromCookie();
   if (!session) {
     const errorMsg = 'Unauthorized: You must be logged in to create a fighter.';
@@ -26,17 +22,14 @@ export async function createFighter(data: CreateFighterInput) {
     throw new Error(errorMsg);
   }
 
-  // 3. Validation (Server-side)
   const parsed = CreateFighterSchema.safeParse(data);
   if (!parsed.success) {
     const errorMsg = 'Validation failed';
     logger.error({ action: 'createFighter', errors: parsed.error }, errorMsg);
-    // In een echte form handler zou je de errors teruggeven, hier gooien we een error voor eenvoud
     throw new Error(errorMsg);
   }
 
   try {
-    // 4. Database Operation
     const { 
       firstName, lastName, nickname, wins, losses, draws, 
       heightCm, reachCm, dob, bio, imageUrl, weightClassId, gymId 
@@ -55,13 +48,11 @@ export async function createFighter(data: CreateFighterInput) {
         dob,
         bio,
         imageUrl,
-        // Connecties alleen leggen als ID aanwezig is
         weightClass: weightClassId ? { connect: { id: weightClassId } } : undefined,
         gym: gymId ? { connect: { id: gymId } } : undefined,
       },
     });
 
-    // 5. Logging End
     const duration = Date.now() - start;
     logger.info(
       { action: 'createFighter', fighterId: newFighter.id, duration }, 
@@ -73,14 +64,13 @@ export async function createFighter(data: CreateFighterInput) {
     throw new Error('Failed to create fighter');
   }
 
-  // 6. Revalidate & Redirect
+  // FIX: Ververs de sessie cookie expliciet voor de redirect
+  await extendSessionAndSetCookie(session.id, session.user.role);
+
   revalidatePath('/dashboard/fighters');
   redirect('/dashboard/fighters');
 }
 
-/**
- * UPDATE Fighter Action
- */
 export async function updateFighter(data: UpdateFighterInput) {
   const logger = await getLogger();
   const start = Date.now();
@@ -119,7 +109,6 @@ export async function updateFighter(data: UpdateFighterInput) {
         dob,
         bio,
         imageUrl,
-        // Disconnect als er geen waarde is, anders connect
         weightClass: weightClassId ? { connect: { id: weightClassId } } : { disconnect: true },
         gym: gymId ? { connect: { id: gymId } } : { disconnect: true },
       },
@@ -133,13 +122,13 @@ export async function updateFighter(data: UpdateFighterInput) {
     throw new Error('Failed to update fighter');
   }
 
+  // FIX: Ververs de sessie cookie expliciet voor de redirect
+  await extendSessionAndSetCookie(session.id, session.user.role);
+
   revalidatePath('/dashboard/fighters');
   redirect('/dashboard/fighters');
 }
 
-/**
- * DELETE Fighter Action
- */
 export async function deleteFighter(id: string) {
   const logger = await getLogger();
   const start = Date.now();
@@ -164,6 +153,9 @@ export async function deleteFighter(id: string) {
     logger.error({ action: 'deleteFighter', error }, 'Failed to delete fighter');
     throw new Error('Failed to delete fighter');
   }
+
+  // FIX: Ververs de sessie cookie ook bij delete
+  await extendSessionAndSetCookie(session.id, session.user.role);
 
   revalidatePath('/dashboard/fighters');
 }
